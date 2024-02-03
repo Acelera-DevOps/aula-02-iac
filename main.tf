@@ -24,6 +24,30 @@ resource "aws_subnet" "aula_02" {
 }
 
 
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.aula_02.id
+
+  tags = {
+    Name = "aula-02-igw"
+  }
+}
+resource "aws_route_table" "rt" {
+  vpc_id = aws_vpc.aula_02.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "aula-02-rt"
+  }
+}
+
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.aula_02.id
+  route_table_id = aws_route_table.rt.id
+}
 
 resource "aws_security_group" "allow_web" {
   name        = "allow_web"
@@ -58,7 +82,7 @@ resource "aws_security_group" "allow_web" {
 
 resource "aws_key_pair" "deployer_key" {
   key_name   = "deployer_key"
-  public_key = ""
+  public_key = " "
 }
 
 data "aws_ami" "ubuntu" {
@@ -87,7 +111,15 @@ resource "aws_instance" "web" {
   associate_public_ip_address   = true
   user_data = <<-EOF
       #!/bin/bash
-
+      sudo apt-get update
+      sudo apt-get install -y openjdk-17-jdk apache2
+      
+      # Habilitar e iniciar o Apache Web Server
+      systemctl enable apache2
+      systemctl start apache2
+      
+      # Verificar se o Java foi instalado corretamente
+      java -version
       EOF
 
   tags = {
